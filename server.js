@@ -17,6 +17,11 @@ const io = new Server(server, {
 
 let onlineUsers = {};
 
+const API_BASE_URL = process.env.NODE_ENV === "production"
+    ? "https://yr4project.vercel.app/"
+    : "http://localhost:3000";
+
+
 io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
@@ -30,8 +35,23 @@ io.on("connection", (socket) => {
         socket.join(spaceId);
     });
 
-    socket.on("space-message", (data) => {
+    socket.on("space-message", async (data) => {
         io.to(data.spaceId).emit("space-message", data);
+
+        try {
+            await fetch(`${API_BASE_URL}/api/saveSpaceMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...data,
+                    timestamp: Date.now(),
+                })
+            });
+
+            console.log("Message saved successfully");
+        } catch (err) {
+            console.error("Error saving message:", err);
+        }
     });
 
     socket.on("disconnect", () => {
@@ -51,3 +71,8 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+
+
+
