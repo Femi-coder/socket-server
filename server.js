@@ -54,6 +54,14 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("join-room", (roomId) => {
+        socket.join(roomId);
+    });
+
+    socket.on("send-message", (data) => {
+        io.to(data.roomId).emit("receive-message", data);
+    });
+
     socket.on("disconnect", () => {
         for (const email in onlineUsers) {
             if (onlineUsers[email] === socket.id) {
@@ -63,6 +71,10 @@ io.on("connection", (socket) => {
         }
         io.emit("online-users", onlineUsers);
     });
+
+
+
+
 });
 
 app.get("/", (req, res) => {
