@@ -55,10 +55,12 @@ io.on("connection", (socket) => {
     });
 
     socket.on("join-room", (roomId) => {
+        console.log("User joined DM room:", roomId);
         socket.join(roomId);
     });
 
-    socket.on("send-message", (data) => {
+        socket.on("send-message", (data) => {
+        console.log("DM received on server:", data);
         io.to(data.roomId).emit("receive-message", data);
     });
 
