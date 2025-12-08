@@ -54,14 +54,18 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("join-room", (roomId) => {
-        console.log("User joined DM room:", roomId);
-        socket.join(roomId);
+    socket.on("join-room", (room) => {
+        const cleanRoom = room.trim().toLowerCase();
+        console.log("User joined DM room:", cleanRoom);
+        socket.join(cleanRoom);
     });
 
         socket.on("send-message", (data) => {
+            
         console.log("DM received on server:", data);
-        io.to(data.roomId).emit("receive-message", data);
+        const cleanRoom = data.roomId.trim().toLowerCase();
+io.to(cleanRoom).emit("receive-message", data);
+
     });
 
     socket.on("disconnect", () => {
