@@ -5,24 +5,22 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const server = createServer(app);
 
 const io = new Server(server, {
     cors: {
         origin: "*",
-        methods: ["GET", "POST"]
-    }
+        methods: ["GET", "POST"],
+    },
 });
 
 let onlineUsers = {};
 
-// Force API to always hit Vercel
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://yr4project.vercel.app";
 
 io.on("connection", (socket) => {
-    console.log("Socket connected:", socket.id);
-
     socket.on("user-online", (email) => {
         onlineUsers[email] = socket.id;
         io.emit("online-users", onlineUsers);
@@ -35,10 +33,8 @@ io.on("connection", (socket) => {
             await fetch(`${API_BASE_URL}/api/saveAnnouncement`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
             });
-
-            console.log("Announcement saved");
         } catch (err) {
             console.error("Error saving announcement:", err);
         }
@@ -58,10 +54,8 @@ io.on("connection", (socket) => {
                 body: JSON.stringify({
                     ...data,
                     timestamp: Date.now(),
-                })
+                }),
             });
-
-            console.log("Message saved successfully");
         } catch (err) {
             console.error("Error saving message:", err);
         }
@@ -69,12 +63,10 @@ io.on("connection", (socket) => {
 
     socket.on("join-room", (room) => {
         const cleanRoom = room.trim().toLowerCase();
-        console.log("User joined DM room:", cleanRoom);
         socket.join(cleanRoom);
     });
 
     socket.on("send-message", (data) => {
-        console.log("DM received on server:", data);
         const cleanRoom = data.roomId.trim().toLowerCase();
         io.to(cleanRoom).emit("receive-message", data);
     });
@@ -94,8 +86,7 @@ app.get("/", (req, res) => {
     res.send("Socket Server Running");
 });
 
-// Required for Render hosting
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, "0.0.0.0", () =>
-    console.log(`Server running on port ${PORT}`)
-);
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+});
