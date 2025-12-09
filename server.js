@@ -29,6 +29,22 @@ io.on("connection", (socket) => {
         onlineUsers[email] = socket.id;
         io.emit("online-users", onlineUsers);
     });
+    socket.on("announcement", async (data) => {
+        io.emit("announcement", data);
+
+        try {
+            await fetch(`${API_BASE_URL}/api/saveAnnouncement`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            console.log("Announcement saved");
+        } catch (err) {
+            console.error("Error saving announcement:", err);
+        }
+    });
+
 
 
     socket.on("join-space", (spaceId) => {
@@ -60,11 +76,11 @@ io.on("connection", (socket) => {
         socket.join(cleanRoom);
     });
 
-        socket.on("send-message", (data) => {
-            
+    socket.on("send-message", (data) => {
+
         console.log("DM received on server:", data);
         const cleanRoom = data.roomId.trim().toLowerCase();
-io.to(cleanRoom).emit("receive-message", data);
+        io.to(cleanRoom).emit("receive-message", data);
 
     });
 
