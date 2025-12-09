@@ -18,7 +18,7 @@ const io = new Server(server, {
 let onlineUsers = {};
 
 // Force API to always hit Vercel
-const API_BASE_URL = "https://yr4project.vercel.app";
+const API_BASE_URL = "http://localhost:3000";
 
 io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
