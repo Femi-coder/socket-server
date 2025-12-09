@@ -17,10 +17,8 @@ const io = new Server(server, {
 
 let onlineUsers = {};
 
-const API_BASE_URL = process.env.NODE_ENV === "production"
-    ? "https://yr4project.vercel.app"
-    : "http://localhost:3000";
-
+// Force API to always hit Vercel
+const API_BASE_URL = "https://yr4project.vercel.app";
 
 io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
@@ -29,6 +27,7 @@ io.on("connection", (socket) => {
         onlineUsers[email] = socket.id;
         io.emit("online-users", onlineUsers);
     });
+
     socket.on("announcement", async (data) => {
         io.emit("announcement", data);
 
@@ -44,8 +43,6 @@ io.on("connection", (socket) => {
             console.error("Error saving announcement:", err);
         }
     });
-
-
 
     socket.on("join-space", (spaceId) => {
         socket.join(spaceId);
@@ -77,11 +74,9 @@ io.on("connection", (socket) => {
     });
 
     socket.on("send-message", (data) => {
-
         console.log("DM received on server:", data);
         const cleanRoom = data.roomId.trim().toLowerCase();
         io.to(cleanRoom).emit("receive-message", data);
-
     });
 
     socket.on("disconnect", () => {
@@ -93,20 +88,14 @@ io.on("connection", (socket) => {
         }
         io.emit("online-users", onlineUsers);
     });
-
-
-
-
 });
 
 app.get("/", (req, res) => {
     res.send("Socket Server Running");
 });
 
+// Required for Render hosting
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
-
-
-
+server.listen(PORT, "0.0.0.0", () =>
+    console.log(`Server running on port ${PORT}`)
+);
