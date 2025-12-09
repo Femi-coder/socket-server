@@ -15,27 +15,42 @@ const io = new Server(server, {
     }
 });
 
+// Always talk to Vercel API
+const API_BASE_URL = "https://yr4project.vercel.app";
+
 let onlineUsers = {};
-
-const API_BASE_URL = process.env.NODE_ENV === "production"
-    ? "https://yr4project.vercel.app/"
-    : "http://localhost:3000";
-
 
 io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
+    // Online user tracking
     socket.on("user-online", (email) => {
         onlineUsers[email] = socket.id;
         io.emit("online-users", onlineUsers);
     });
-    
 
+    // Announcements
+    socket.on("announcement", async (data) => {
+        io.emit("announcement", data);
 
+        try {
+            await fetch(`${API_BASE_URL}/api/saveAnnouncement`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            console.log("Announcement saved to DB");
+        } catch (err) {
+            console.error("Error saving announcement:", err);
+        }
+    });
+
+    // Join a space
     socket.on("join-space", (spaceId) => {
         socket.join(spaceId);
     });
 
+    // Space messages
     socket.on("space-message", async (data) => {
         io.to(data.spaceId).emit("space-message", data);
 
@@ -43,45 +58,34 @@ io.on("connection", (socket) => {
             await fetch(`${API_BASE_URL}/api/saveSpaceMessage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...data,
-                    timestamp: Date.now(),
-                })
+                body: JSON.stringify({ ...data, timestamp: Date.now() })
             });
-
-            console.log("Message saved successfully");
+            console.log("Space message saved");
         } catch (err) {
-            console.error("Error saving message:", err);
+            console.error("Error saving space message:", err);
         }
     });
 
+    // Direct message room join
     socket.on("join-room", (room) => {
-        const cleanRoom = room.trim().toLowerCase();
-        console.log("User joined DM room:", cleanRoom);
-        socket.join(cleanRoom);
+        socket.join(room.trim().toLowerCase());
     });
 
+    // Direct message send
     socket.on("send-message", (data) => {
-
-        console.log("DM received on server:", data);
-        const cleanRoom = data.roomId.trim().toLowerCase();
-        io.to(cleanRoom).emit("receive-message", data);
-
+        const room = data.roomId.trim().toLowerCase();
+        io.to(room).emit("receive-message", data);
     });
 
+    // Disconnect
     socket.on("disconnect", () => {
         for (const email in onlineUsers) {
             if (onlineUsers[email] === socket.id) {
                 delete onlineUsers[email];
-                break;
             }
         }
         io.emit("online-users", onlineUsers);
     });
-
-
-
-
 });
 
 app.get("/", (req, res) => {
@@ -89,9 +93,6 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
-
-
-
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+});
