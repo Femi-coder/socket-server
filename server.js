@@ -5,40 +5,32 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
 const server = createServer(app);
 
 const io = new Server(server, {
     cors: {
         origin: "*",
-        methods: ["GET", "POST"],
-    },
+        methods: ["GET", "POST"]
+    }
 });
 
 let onlineUsers = {};
 
-const API_BASE_URL = "https://yr4project.vercel.app";
+const API_BASE_URL = process.env.NODE_ENV === "production"
+    ? "https://yr4project.vercel.app/"
+    : "http://localhost:3000";
+
 
 io.on("connection", (socket) => {
+    console.log("Socket connected:", socket.id);
+
     socket.on("user-online", (email) => {
         onlineUsers[email] = socket.id;
         io.emit("online-users", onlineUsers);
     });
+    
 
-    socket.on("announcement", async (data) => {
-        io.emit("announcement", data);
-
-        try {
-            await fetch(`${API_BASE_URL}/api/saveAnnouncement`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            });
-        } catch (err) {
-            console.error("Error saving announcement:", err);
-        }
-    });
 
     socket.on("join-space", (spaceId) => {
         socket.join(spaceId);
@@ -54,8 +46,10 @@ io.on("connection", (socket) => {
                 body: JSON.stringify({
                     ...data,
                     timestamp: Date.now(),
-                }),
+                })
             });
+
+            console.log("Message saved successfully");
         } catch (err) {
             console.error("Error saving message:", err);
         }
@@ -63,12 +57,16 @@ io.on("connection", (socket) => {
 
     socket.on("join-room", (room) => {
         const cleanRoom = room.trim().toLowerCase();
+        console.log("User joined DM room:", cleanRoom);
         socket.join(cleanRoom);
     });
 
     socket.on("send-message", (data) => {
+
+        console.log("DM received on server:", data);
         const cleanRoom = data.roomId.trim().toLowerCase();
         io.to(cleanRoom).emit("receive-message", data);
+
     });
 
     socket.on("disconnect", () => {
@@ -80,6 +78,10 @@ io.on("connection", (socket) => {
         }
         io.emit("online-users", onlineUsers);
     });
+
+
+
+
 });
 
 app.get("/", (req, res) => {
@@ -87,6 +89,9 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+
+
+
